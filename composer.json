@@ -1,0 +1,23 @@
+{
+    "name": "jlbousing/google-calendar-event",
+    "description": "Package to make a google calendar event by any PHP project",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Jlbousing\\GoogleCalendarEvent\\": "src/"
+        }
+    },
+    "require": {
+        "php": "^7.2|^8.0",
+        "google/apiclient": "^2.2"
+    },
+    "authors": [
+        {
+            "name": "Jorge Luis Bou-saad",
+            "email": "jbousing@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
