@@ -12,11 +12,6 @@ class ConfigDTO
     /**
      * @var string
      */
-    private $credentialsPath;
-
-    /**
-     * @var string
-     */
     private $accessType = 'offline';
 
     /**
@@ -28,6 +23,21 @@ class ConfigDTO
      * @var string|null
      */
     private $tokenPath;
+
+    /**
+     * @var string
+     */
+    private $clientId;
+
+    /**
+     * @var string
+     */
+    private $clientSecret;
+
+    /**
+     * @var string
+     */
+    private $redirectUri;
 
     /**
      * @param array $config
@@ -46,7 +56,6 @@ class ConfigDTO
         }
 
         $dto->setAppName($config['app_name']);
-        $dto->setCredentialsPath($config['credentials_path']);
 
         if (isset($config['access_type'])) {
             $dto->setAccessType($config['access_type']);
@@ -78,24 +87,6 @@ class ConfigDTO
     public function setAppName(string $appName): self
     {
         $this->appName = $appName;
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getCredentialsPath(): string
-    {
-        return $this->credentialsPath;
-    }
-
-    /**
-     * @param string $credentialsPath
-     * @return self
-     */
-    public function setCredentialsPath(string $credentialsPath): self
-    {
-        $this->credentialsPath = $credentialsPath;
         return $this;
     }
 
@@ -150,6 +141,60 @@ class ConfigDTO
     public function setTokenPath(string $tokenPath): self
     {
         $this->tokenPath = $tokenPath;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getClientId(): string
+    {
+        return $this->clientId;
+    }
+
+    /**
+     * @param string $clientId
+     * @return self
+     */
+    public function setClientId(string $clientId): self
+    {
+        $this->clientId = $clientId;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getClientSecret(): string
+    {
+        return $this->clientSecret;
+    }
+
+    /**
+     * @param string $clientSecret
+     * @return self
+     */
+    public function setClientSecret(string $clientSecret): self
+    {
+        $this->clientSecret = $clientSecret;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getRedirectUri(): string
+    {
+        return $this->redirectUri;
+    }
+
+    /**
+     * @param string $redirectUri
+     * @return self
+     */
+    public function setRedirectUri(string $redirectUri): self
+    {
+        $this->redirectUri = $redirectUri;
         return $this;
     }
 }

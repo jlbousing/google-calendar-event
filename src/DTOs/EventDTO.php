@@ -7,6 +7,11 @@ class EventDTO
     /**
      * @var string
      */
+    private $calendarId;
+
+    /**
+     * @var string
+     */
     private $title;
 
     /**
@@ -70,6 +75,10 @@ class EventDTO
             $dto->setSendNotifications($data['send_notifications']);
         }
 
+        if (isset($data['calendar_id'])) {
+            $dto->setCalendarId($data['calendar_id']);
+        }
+
         return $dto;
     }
 
@@ -100,6 +109,24 @@ class EventDTO
         }
 
         return $data;
+    }
+
+    /**
+     * @return string
+     */
+    public function getCalendarId(): string
+    {
+        return $this->calendarId;
+    }
+
+    /**
+     * @param string $calendarId
+     * @return self
+     */
+    public function setCalendarId(string $calendarId): self
+    {
+        $this->calendarId = $calendarId;
+        return $this;
     }
 
     /**
