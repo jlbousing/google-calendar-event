@@ -2,7 +2,7 @@
 
 require_once 'vendor/autoload.php';
 
-use Jlbousing\GoogleCalendarEvent\GoogleCalendarEvent;
+use Jlbousing\GoogleCalendarEvent\GoogleCalendar;
 use Jlbousing\GoogleCalendarEvent\DTOs\ConfigDTO;
 use Jlbousing\GoogleCalendarEvent\DTOs\EventDTO;
 use Jlbousing\GoogleCalendarEvent\DTOs\EventListDTO;
@@ -10,12 +10,14 @@ use Jlbousing\GoogleCalendarEvent\DTOs\EventListDTO;
 // Configure credentials
 $config = [
     'app_name' => 'My Application',
-    'credentials_path' => __DIR__ . '/credentials.json', // Path to your credentials file
+    'client_id' => 'your-client-id-here',
+    'client_secret' => 'your-client-secret-here',
+    'redirect_uri' => 'https://your-redirect-uri.com',
 ];
 
 // Initialize the class
 try {
-    $calendarEvent = new GoogleCalendarEvent($config);
+    $googleCalendar = new GoogleCalendar($config);
     echo "✅ Connection established successfully\n\n";
 } catch (Exception $e) {
     die("❌ Connection error: " . $e->getMessage() . "\n");
@@ -25,14 +27,15 @@ try {
 function showMenu()
 {
     echo "==== Google Calendar Event - Test Menu ====\n";
-    echo "1. Create an event\n";
-    echo "2. Get event details\n";
-    echo "3. Update an event\n";
-    echo "4. Delete an event\n";
-    echo "5. List upcoming events\n";
-    echo "6. Search events\n";
-    echo "7. Get events between dates\n";
-    echo "0. Exit\n";
+    echo "1. Generar URL de autenticación\n";
+    echo "2. Obtener token de acceso con código de autorización\n";
+    echo "3. Listar calendarios\n";
+    echo "4. Crear un evento\n";
+    echo "5. Obtener detalles de un evento\n";
+    echo "6. Actualizar un evento\n";
+    echo "7. Eliminar un evento\n";
+    echo "8. Listar eventos\n";
+    echo "0. Salir\n";
     echo "Select an option: ";
     return trim(fgets(STDIN));
 }
@@ -40,49 +43,53 @@ function showMenu()
 // Function to request event data
 function requestEventData()
 {
-    echo "Event title: ";
+    echo "ID del calendario (por defecto 'primary'): ";
+    $calendarId = trim(fgets(STDIN));
+    $calendarId = $calendarId ?: 'primary';
+
+    echo "Título del evento: ";
     $title = trim(fgets(STDIN));
 
-    echo "Description: ";
+    echo "Descripción: ";
     $description = trim(fgets(STDIN));
 
-    echo "Start date (YYYY-MM-DD): ";
+    echo "Fecha de inicio (YYYY-MM-DD): ";
     $startDate = trim(fgets(STDIN));
 
-    echo "Start time (HH:MM): ";
+    echo "Hora de inicio (HH:MM): ";
     $startTime = trim(fgets(STDIN));
 
-    echo "Duration in minutes: ";
+    echo "Duración en minutos: ";
     $duration = trim(fgets(STDIN));
 
-    echo "Location (optional, press Enter to skip): ";
+    echo "Ubicación (opcional, presiona Enter para omitir): ";
     $location = trim(fgets(STDIN));
 
-    echo "Add attendees? (y/n): ";
-    $addAttendees = strtolower(trim(fgets(STDIN))) === 'y';
+    echo "¿Agregar asistentes? (s/n): ";
+    $addAttendees = strtolower(trim(fgets(STDIN))) === 's';
     $attendees = [];
 
     if ($addAttendees) {
         $addingAttendees = true;
         while ($addingAttendees) {
-            echo "Attendee email: ";
+            echo "Email del asistente: ";
             $email = trim(fgets(STDIN));
 
-            echo "Optional attendee? (y/n): ";
-            $optional = strtolower(trim(fgets(STDIN))) === 'y';
+            echo "¿Asistente opcional? (s/n): ";
+            $optional = strtolower(trim(fgets(STDIN))) === 's';
 
             $attendees[] = [
                 'email' => $email,
                 'optional' => $optional
             ];
 
-            echo "Add another attendee? (y/n): ";
-            $addingAttendees = strtolower(trim(fgets(STDIN))) === 'y';
+            echo "¿Agregar otro asistente? (s/n): ";
+            $addingAttendees = strtolower(trim(fgets(STDIN))) === 's';
         }
     }
 
-    echo "Send notifications? (y/n): ";
-    $sendNotifications = strtolower(trim(fgets(STDIN))) === 'y';
+    echo "¿Enviar notificaciones? (s/n): ";
+    $sendNotifications = strtolower(trim(fgets(STDIN))) === 's';
 
     // Format dates for Google Calendar
     $timezone = new DateTimeZone('America/New_York'); // Change this to your timezone
@@ -91,55 +98,115 @@ function requestEventData()
     $endDateTime->add(new DateInterval('PT' . $duration . 'M'));
 
     // Create EventDTO
-    $eventData = [
-        'title' => $title,
-        'description' => $description,
-        'start' => $startDateTime->format('c'),
-        'end' => $endDateTime->format('c'),
-        'timezone' => $timezone->getName(),
-        'send_notifications' => $sendNotifications
-    ];
+    $eventDTO = new EventDTO();
+    $eventDTO->setCalendarId($calendarId);
+    $eventDTO->setTitle($title);
+    $eventDTO->setDescription($description);
+    $eventDTO->setStart($startDateTime->format('c'));
+    $eventDTO->setEnd($endDateTime->format('c'));
+    $eventDTO->setTimezone($timezone->getName());
+    $eventDTO->setSendNotifications($sendNotifications);
 
     if (!empty($location)) {
-        $eventData['location'] = $location;
+        $eventDTO->setLocation($location);
     }
 
     if (!empty($attendees)) {
-        $eventData['attendees'] = $attendees;
+        $eventDTO->setAttendees($attendees);
     }
 
-    return $eventData;
+    return $eventDTO;
 }
 
-// Variable to store the last created event ID
+// Almacenar token
+$token = null;
 $lastEventId = '';
-$calendarId = "your-email-hereg@email.com";
 
 // Main menu loop
 while (true) {
     $option = showMenu();
 
     switch ($option) {
-        case '1': // Create event
-            echo "\n=== Create New Event ===\n";
-            $eventData = requestEventData();
-
+        case '1': // Generar URL de autenticación
+            echo "\n=== Generar URL de autenticación ===\n";
             try {
-                $event = $calendarEvent->createEvent($eventData, "jbousing@gmail.com");
-                $lastEventId = $event->getId();
-                echo "\n✅ Event created successfully\n";
-                echo "ID: " . $lastEventId . "\n";
-                echo "Title: " . $event->getSummary() . "\n";
-                echo "Start: " . $event->getStart()->getDateTime() . "\n";
-                echo "End: " . $event->getEnd()->getDateTime() . "\n\n";
+                $authUrl = $googleCalendar->auth();
+                echo "\n✅ URL de autenticación generada:\n$authUrl\n\n";
+                echo "Abre esta URL en tu navegador y autoriza la aplicación.\n";
+                echo "Luego copia el código de autorización para obtener un token.\n\n";
             } catch (Exception $e) {
-                echo "\n❌ Error creating event: " . $e->getMessage() . "\n\n";
+                echo "\n❌ Error al generar URL de autenticación: " . $e->getMessage() . "\n\n";
             }
             break;
 
-        case '2': // Get event
-            echo "\n=== Get Event Details ===\n";
-            echo "Event ID" . ($lastEventId ? " (Press Enter to use $lastEventId)" : "") . ": ";
+        case '2': // Obtener token con código de autorización
+            echo "\n=== Obtener token de acceso ===\n";
+            echo "Ingresa el código de autorización: ";
+            $code = trim(fgets(STDIN));
+
+            try {
+                $token = $googleCalendar->getToken($code);
+                echo "\n✅ Token obtenido correctamente\n\n";
+            } catch (Exception $e) {
+                echo "\n❌ Error al obtener token: " . $e->getMessage() . "\n\n";
+            }
+            break;
+
+        case '3': // Listar calendarios
+            echo "\n=== Listar Calendarios ===\n";
+            if (!$token) {
+                echo "❌ Debes obtener un token primero (opción 2)\n\n";
+                break;
+            }
+
+            try {
+                $calendars = $googleCalendar->listCalendars($token);
+                echo "\n✅ Calendarios encontrados: " . count($calendars) . "\n\n";
+
+                foreach ($calendars as $index => $calendar) {
+                    echo ($index + 1) . ". " . $calendar->getSummary() . "\n";
+                    echo "   ID: " . $calendar->getId() . "\n";
+                    echo "   Zona horaria: " . $calendar->getTimeZone() . "\n\n";
+                }
+            } catch (Exception $e) {
+                echo "\n❌ Error al listar calendarios: " . $e->getMessage() . "\n\n";
+            }
+            break;
+
+        case '4': // Crear evento
+            echo "\n=== Crear Nuevo Evento ===\n";
+            if (!$token) {
+                echo "❌ Debes obtener un token primero (opción 2)\n\n";
+                break;
+            }
+
+            $eventDTO = requestEventData();
+
+            try {
+                $event = $googleCalendar->createEvent($eventDTO, $token);
+                $lastEventId = $event->getId();
+                echo "\n✅ Evento creado correctamente\n";
+                echo "ID: " . $lastEventId . "\n";
+                echo "Título: " . $event->getSummary() . "\n";
+                echo "Inicio: " . $event->getStart()->getDateTime() . "\n";
+                echo "Fin: " . $event->getEnd()->getDateTime() . "\n\n";
+            } catch (Exception $e) {
+                echo "\n❌ Error al crear evento: " . $e->getMessage() . "\n\n";
+            }
+            break;
+
+        case '5': // Obtener evento
+            echo "\n=== Obtener Detalles de Evento ===\n";
+            if (!$token) {
+                echo "❌ Debes obtener un token primero (opción 2)\n\n";
+                break;
+            }
+
+            echo "ID del calendario (por defecto 'primary'): ";
+            $calendarId = trim(fgets(STDIN));
+            $calendarId = $calendarId ?: 'primary';
+
+            echo "ID del evento" . ($lastEventId ? " (Presiona Enter para usar $lastEventId)" : "") . ": ";
             $eventId = trim(fgets(STDIN));
 
             if (empty($eventId) && !empty($lastEventId)) {
@@ -147,42 +214,50 @@ while (true) {
             }
 
             if (empty($eventId)) {
-                echo "\n❌ Invalid event ID\n\n";
+                echo "\n❌ ID de evento inválido\n\n";
                 break;
             }
 
             try {
-                $event = $calendarEvent->getEvent($eventId);
-                echo "\n✅ Event found\n";
+                $eventDTO = new EventDTO();
+                $eventDTO->setCalendarId($calendarId);
+
+                $event = $googleCalendar->getEvent($eventDTO, $eventId, $token);
+                echo "\n✅ Evento encontrado\n";
                 echo "ID: " . $event->getId() . "\n";
-                echo "Title: " . $event->getSummary() . "\n";
-                echo "Description: " . $event->getDescription() . "\n";
-                echo "Start: " . $event->getStart()->getDateTime() . "\n";
-                echo "End: " . $event->getEnd()->getDateTime() . "\n";
+                echo "Título: " . $event->getSummary() . "\n";
+                echo "Descripción: " . $event->getDescription() . "\n";
+                echo "Inicio: " . $event->getStart()->getDateTime() . "\n";
+                echo "Fin: " . $event->getEnd()->getDateTime() . "\n";
                 if ($event->getLocation()) {
-                    echo "Location: " . $event->getLocation() . "\n";
+                    echo "Ubicación: " . $event->getLocation() . "\n";
                 }
 
                 $attendees = $event->getAttendees();
                 if (!empty($attendees)) {
-                    echo "Attendees:\n";
+                    echo "Asistentes:\n";
                     foreach ($attendees as $attendee) {
                         echo "  - " . $attendee->getEmail();
                         if ($attendee->getOptional()) {
-                            echo " (optional)";
+                            echo " (opcional)";
                         }
                         echo "\n";
                     }
                 }
                 echo "\n";
             } catch (Exception $e) {
-                echo "\n❌ Error getting event: " . $e->getMessage() . "\n\n";
+                echo "\n❌ Error al obtener evento: " . $e->getMessage() . "\n\n";
             }
             break;
 
-        case '3': // Update event
-            echo "\n=== Update Event ===\n";
-            echo "Event ID" . ($lastEventId ? " (Press Enter to use $lastEventId)" : "") . ": ";
+        case '6': // Actualizar evento
+            echo "\n=== Actualizar Evento ===\n";
+            if (!$token) {
+                echo "❌ Debes obtener un token primero (opción 2)\n\n";
+                break;
+            }
+
+            echo "ID del evento" . ($lastEventId ? " (Presiona Enter para usar $lastEventId)" : "") . ": ";
             $eventId = trim(fgets(STDIN));
 
             if (empty($eventId) && !empty($lastEventId)) {
@@ -190,27 +265,36 @@ while (true) {
             }
 
             if (empty($eventId)) {
-                echo "\n❌ Invalid event ID\n\n";
+                echo "\n❌ ID de evento inválido\n\n";
                 break;
             }
 
-            $eventData = requestEventData();
+            $eventDTO = requestEventData();
 
             try {
-                $event = $calendarEvent->updateEvent($eventId, $eventData);
-                echo "\n✅ Event updated successfully\n";
+                $event = $googleCalendar->updateEvent($eventDTO, $eventId, $token);
+                echo "\n✅ Evento actualizado correctamente\n";
                 echo "ID: " . $event->getId() . "\n";
-                echo "Title: " . $event->getSummary() . "\n";
-                echo "Start: " . $event->getStart()->getDateTime() . "\n";
-                echo "End: " . $event->getEnd()->getDateTime() . "\n\n";
+                echo "Título: " . $event->getSummary() . "\n";
+                echo "Inicio: " . $event->getStart()->getDateTime() . "\n";
+                echo "Fin: " . $event->getEnd()->getDateTime() . "\n\n";
             } catch (Exception $e) {
-                echo "\n❌ Error updating event: " . $e->getMessage() . "\n\n";
+                echo "\n❌ Error al actualizar evento: " . $e->getMessage() . "\n\n";
             }
             break;
 
-        case '4': // Delete event
-            echo "\n=== Delete Event ===\n";
-            echo "Event ID" . ($lastEventId ? " (Press Enter to use $lastEventId)" : "") . ": ";
+        case '7': // Eliminar evento
+            echo "\n=== Eliminar Evento ===\n";
+            if (!$token) {
+                echo "❌ Debes obtener un token primero (opción 2)\n\n";
+                break;
+            }
+
+            echo "ID del calendario (por defecto 'primary'): ";
+            $calendarId = trim(fgets(STDIN));
+            $calendarId = $calendarId ?: 'primary';
+
+            echo "ID del evento" . ($lastEventId ? " (Presiona Enter para usar $lastEventId)" : "") . ": ";
             $eventId = trim(fgets(STDIN));
 
             if (empty($eventId) && !empty($lastEventId)) {
@@ -218,161 +302,82 @@ while (true) {
             }
 
             if (empty($eventId)) {
-                echo "\n❌ Invalid event ID\n\n";
+                echo "\n❌ ID de evento inválido\n\n";
                 break;
             }
 
             try {
-                $result = $calendarEvent->deleteEvent($eventId);
-                echo "\n✅ Event deleted successfully\n\n";
+                $eventDTO = new EventDTO();
+                $eventDTO->setCalendarId($calendarId);
+
+                $result = $googleCalendar->deleteEvent($eventDTO, $eventId, $token);
+                echo "\n✅ Evento eliminado correctamente\n\n";
                 if ($eventId === $lastEventId) {
                     $lastEventId = '';
                 }
             } catch (Exception $e) {
-                echo "\n❌ Error deleting event: " . $e->getMessage() . "\n\n";
+                echo "\n❌ Error al eliminar evento: " . $e->getMessage() . "\n\n";
             }
             break;
 
-        case '5': // List events
-            echo "\n=== List Upcoming Events ===\n";
-            echo "Number of events to display (maximum): ";
+        case '8': // Listar eventos
+            echo "\n=== Listar Eventos ===\n";
+            if (!$token) {
+                echo "❌ Debes obtener un token primero (opción 2)\n\n";
+                break;
+            }
+
+            echo "ID del calendario (por defecto 'primary'): ";
+            $calendarId = trim(fgets(STDIN));
+            $calendarId = $calendarId ?: 'primary';
+
+            echo "Número de eventos a mostrar (máximo): ";
             $max = trim(fgets(STDIN));
             $max = empty($max) ? 10 : (int)$max;
 
-            echo "Time range (days from now): ";
+            echo "Rango de tiempo (días desde hoy): ";
             $days = trim(fgets(STDIN));
             $days = empty($days) ? 30 : (int)$days;
 
             try {
-                $params = [
-                    'time_min' => date('c'),
-                    'time_max' => date('c', strtotime("+{$days} days")),
-                    'order_by' => 'startTime',
-                    'single_events' => true
-                ];
+                $eventDTO = new EventDTO();
+                $eventDTO->setCalendarId($calendarId);
 
-                $events = $calendarEvent->listEvents('primary', $max, $params);
+                $events = $googleCalendar->listEvents($eventDTO, $token);
+                $items = $events->getItems();
 
-                if (empty($events)) {
-                    echo "\nNo upcoming events scheduled.\n\n";
+                if (empty($items)) {
+                    echo "\nNo hay eventos próximos programados.\n\n";
                     break;
                 }
 
-                echo "\n✅ Found " . count($events) . " events:\n\n";
+                echo "\n✅ Se encontraron " . count($items) . " eventos:\n\n";
 
-                foreach ($events as $index => $event) {
+                foreach ($items as $index => $event) {
                     $startDateTime = $event->getStart()->getDateTime();
-                    $formattedDate = $startDateTime ? (new DateTime($startDateTime))->format('m/d/Y H:i') : 'All day';
+                    $formattedDate = $startDateTime ? (new DateTime($startDateTime))->format('d/m/Y H:i') : 'Todo el día';
 
                     echo ($index + 1) . ". " . $event->getSummary() . "\n";
                     echo "   ID: " . $event->getId() . "\n";
-                    echo "   Date: " . $formattedDate . "\n";
+                    echo "   Fecha: " . $formattedDate . "\n";
                     if ($event->getDescription()) {
-                        echo "   Description: " . $event->getDescription() . "\n";
+                        echo "   Descripción: " . $event->getDescription() . "\n";
                     }
                     if ($event->getLocation()) {
-                        echo "   Location: " . $event->getLocation() . "\n";
+                        echo "   Ubicación: " . $event->getLocation() . "\n";
                     }
                     echo "\n";
                 }
             } catch (Exception $e) {
-                echo "\n❌ Error listing events: " . $e->getMessage() . "\n\n";
+                echo "\n❌ Error al listar eventos: " . $e->getMessage() . "\n\n";
             }
             break;
 
-        case '6': // Search events
-            echo "\n=== Search Events ===\n";
-            echo "Search query: ";
-            $query = trim(fgets(STDIN));
-
-            if (empty($query)) {
-                echo "\n❌ Search query cannot be empty\n\n";
-                break;
-            }
-
-            echo "Number of results to display (maximum): ";
-            $max = trim(fgets(STDIN));
-            $max = empty($max) ? 10 : (int)$max;
-
-            try {
-                $events = $calendarEvent->searchEvents($query, 'primary', $max);
-
-                if (empty($events)) {
-                    echo "\nNo events found matching '$query'.\n\n";
-                    break;
-                }
-
-                echo "\n✅ Found " . count($events) . " events matching '$query':\n\n";
-
-                foreach ($events as $index => $event) {
-                    $startDateTime = $event->getStart()->getDateTime();
-                    $formattedDate = $startDateTime ? (new DateTime($startDateTime))->format('m/d/Y H:i') : 'All day';
-
-                    echo ($index + 1) . ". " . $event->getSummary() . "\n";
-                    echo "   ID: " . $event->getId() . "\n";
-                    echo "   Date: " . $formattedDate . "\n";
-                    if ($event->getDescription()) {
-                        echo "   Description: " . $event->getDescription() . "\n";
-                    }
-                    echo "\n";
-                }
-            } catch (Exception $e) {
-                echo "\n❌ Error searching events: " . $e->getMessage() . "\n\n";
-            }
-            break;
-
-        case '7': // Get events between dates
-            echo "\n=== Get Events Between Dates ===\n";
-            echo "Start date (YYYY-MM-DD): ";
-            $startDate = trim(fgets(STDIN));
-
-            echo "End date (YYYY-MM-DD): ";
-            $endDate = trim(fgets(STDIN));
-
-            if (empty($startDate) || empty($endDate)) {
-                echo "\n❌ Start and end dates are required\n\n";
-                break;
-            }
-
-            echo "Number of results to display (maximum): ";
-            $max = trim(fgets(STDIN));
-            $max = empty($max) ? 10 : (int)$max;
-
-            try {
-                $timeMin = (new DateTime($startDate . ' 00:00:00'))->format('c');
-                $timeMax = (new DateTime($endDate . ' 23:59:59'))->format('c');
-
-                $events = $calendarEvent->getEventsBetweenDates($timeMin, $timeMax, 'primary', $max);
-
-                if (empty($events)) {
-                    echo "\nNo events found between $startDate and $endDate.\n\n";
-                    break;
-                }
-
-                echo "\n✅ Found " . count($events) . " events between $startDate and $endDate:\n\n";
-
-                foreach ($events as $index => $event) {
-                    $startDateTime = $event->getStart()->getDateTime();
-                    $formattedDate = $startDateTime ? (new DateTime($startDateTime))->format('m/d/Y H:i') : 'All day';
-
-                    echo ($index + 1) . ". " . $event->getSummary() . "\n";
-                    echo "   ID: " . $event->getId() . "\n";
-                    echo "   Date: " . $formattedDate . "\n";
-                    if ($event->getDescription()) {
-                        echo "   Description: " . $event->getDescription() . "\n";
-                    }
-                    echo "\n";
-                }
-            } catch (Exception $e) {
-                echo "\n❌ Error getting events between dates: " . $e->getMessage() . "\n\n";
-            }
-            break;
-
-        case '0': // Exit
-            echo "\nGoodbye!\n";
+        case '0': // Salir
+            echo "\n¡Hasta luego!\n";
             exit(0);
 
         default:
-            echo "\n❌ Invalid option. Please try again.\n\n";
+            echo "\n❌ Opción inválida. Inténtalo de nuevo.\n\n";
     }
 }
