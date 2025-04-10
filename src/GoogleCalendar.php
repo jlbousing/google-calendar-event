@@ -1,13 +1,13 @@
 <?php
 
-namespace Jlbousing\GoogleCalendarEvent;
+namespace Jlbousing\GoogleCalendar;
 
 use Google\Client;
 use Google\Service\Calendar;
 use Google\Service\Calendar\Event;
 use Exception;
-use Jlbousing\GoogleCalendarEvent\DTOs\ConfigDTO;
-use Jlbousing\GoogleCalendarEvent\DTOs\EventDTO;
+use Jlbousing\GoogleCalendar\DTOs\ConfigDTO;
+use Jlbousing\GoogleCalendar\DTOs\EventDTO;
 
 class GoogleCalendar
 {

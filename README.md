@@ -27,7 +27,7 @@ Este paquete requiere credenciales de la API de Google Calendar. Sigue estos pas
 
 require_once 'vendor/autoload.php';
 
-use Jlbousing\GoogleCalendarEvent\GoogleCalendar;
+use Jlbousing\GoogleCalendar\GoogleCalendar;
 
 // Configuración
 $config = [
@@ -75,7 +75,7 @@ foreach ($calendars as $calendar) {
 ### Crear un evento
 
 ```php
-use Jlbousing\GoogleCalendarEvent\DTOs\EventDTO;
+use Jlbousing\GoogleCalendar\DTOs\EventDTO;
 
 // Usando la clase EventDTO
 $eventDTO = new EventDTO();
@@ -97,7 +97,7 @@ echo "Evento creado con ID: " . $event->getId();
 ### Obtener detalles de un evento
 
 ```php
-use Jlbousing\GoogleCalendarEvent\DTOs\EventDTO;
+use Jlbousing\GoogleCalendar\DTOs\EventDTO;
 
 $eventDTO = new EventDTO();
 $eventDTO->setCalendarId('primary');
@@ -110,7 +110,7 @@ echo "Título del evento: " . $event->getSummary();
 ### Actualizar un evento
 
 ```php
-use Jlbousing\GoogleCalendarEvent\DTOs\EventDTO;
+use Jlbousing\GoogleCalendar\DTOs\EventDTO;
 
 $eventDTO = new EventDTO();
 $eventDTO->setCalendarId('primary')
@@ -129,7 +129,7 @@ echo "Evento actualizado: " . $updatedEvent->getSummary();
 ### Eliminar un evento
 
 ```php
-use Jlbousing\GoogleCalendarEvent\DTOs\EventDTO;
+use Jlbousing\GoogleCalendar\DTOs\EventDTO;
 
 $eventDTO = new EventDTO();
 $eventDTO->setCalendarId('primary');
@@ -144,7 +144,7 @@ if ($result) {
 ### Listar eventos
 
 ```php
-use Jlbousing\GoogleCalendarEvent\DTOs\EventDTO;
+use Jlbousing\GoogleCalendar\DTOs\EventDTO;
 
 $eventDTO = new EventDTO();
 $eventDTO->setCalendarId('primary');
@@ -160,7 +160,7 @@ foreach ($items as $event) {
 ### Listar eventos por fecha
 
 ```php
-use Jlbousing\GoogleCalendarEvent\DTOs\EventDTO;
+use Jlbousing\GoogleCalendar\DTOs\EventDTO;
 
 $eventDTO = new EventDTO();
 $eventDTO->setCalendarId('primary');
@@ -182,7 +182,7 @@ Este paquete utiliza DTOs para manejar los datos de forma estructurada:
 Maneja la configuración para el cliente de Google Calendar:
 
 ```php
-use Jlbousing\GoogleCalendarEvent\DTOs\ConfigDTO;
+use Jlbousing\GoogleCalendar\DTOs\ConfigDTO;
 
 $configDTO = new ConfigDTO([
     'app_name' => 'Nombre de tu aplicación',
@@ -197,7 +197,7 @@ $configDTO = new ConfigDTO([
 Maneja los datos de eventos:
 
 ```php
-use Jlbousing\GoogleCalendarEvent\DTOs\EventDTO;
+use Jlbousing\GoogleCalendar\DTOs\EventDTO;
 
 // Crear manualmente
 $eventDTO = new EventDTO();

@@ -2,7 +2,7 @@
 
 require_once 'vendor/autoload.php';
 
-use Jlbousing\GoogleCalendarEvent\GoogleCalendarEvent;
+use Jlbousing\GoogleCalendar\GoogleCalendar;
 
 // Enable all errors
 ini_set('display_errors', 1);
@@ -58,7 +58,7 @@ if (file_exists($credentialsPath)) {
 echo "\n=== Testing Event Creation with Fixed Data ===\n";
 try {
     // Create an instance with detailed error handling
-    $calendarEvent = new GoogleCalendarEvent($config);
+    $calendarEvent = new GoogleCalendar($config);
     echo "✅ Connection established successfully\n\n";
 
     // Create an event with fixed data for testing

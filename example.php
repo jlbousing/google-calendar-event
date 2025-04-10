@@ -2,10 +2,10 @@
 
 require_once 'vendor/autoload.php';
 
-use Jlbousing\GoogleCalendarEvent\GoogleCalendar;
-use Jlbousing\GoogleCalendarEvent\DTOs\ConfigDTO;
-use Jlbousing\GoogleCalendarEvent\DTOs\EventDTO;
-use Jlbousing\GoogleCalendarEvent\DTOs\EventListDTO;
+use Jlbousing\GoogleCalendar\GoogleCalendar;
+use Jlbousing\GoogleCalendar\DTOs\ConfigDTO;
+use Jlbousing\GoogleCalendar\DTOs\EventDTO;
+use Jlbousing\GoogleCalendar\DTOs\EventListDTO;
 
 // Configure credentials
 $config = [

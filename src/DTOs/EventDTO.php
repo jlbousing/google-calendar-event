@@ -1,6 +1,6 @@
 <?php
 
-namespace Jlbousing\GoogleCalendarEvent\DTOs;
+namespace Jlbousing\GoogleCalendar\DTOs;
 
 class EventDTO
 {
