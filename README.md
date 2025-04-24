@@ -8,6 +8,10 @@ PHP package to create Google Calendar events from any PHP project.
 composer require jlbousing/google-calendar-event
 ```
 
+## Ejemplo de uso con un API construida con Laravel
+
+https://github.com/jlbousing/laravel-google-calendar-example
+
 ## Configuración
 
 Este paquete requiere credenciales de la API de Google Calendar. Sigue estos pasos para obtenerlas:
