@@ -2,29 +2,29 @@
 
 PHP package to create Google Calendar events from any PHP project.
 
-## Instalación
+## Installation
 
 ```bash
 composer require jlbousing/google-calendar-event
 ```
 
-## Ejemplo de uso con un API construida con Laravel
+## Example of use with a Laravel API
 
 https://github.com/jlbousing/laravel-google-calendar-example
 
-## Configuración
+## Configuration
 
-Este paquete requiere credenciales de la API de Google Calendar. Sigue estos pasos para obtenerlas:
+This package requires Google Calendar API credentials. Follow these steps to obtain them:
 
-1. Ve a la [Consola de Google Cloud](https://console.cloud.google.com/)
-2. Crea un nuevo proyecto o selecciona uno existente
-3. Habilita la API de Google Calendar
-4. Crea credenciales OAuth 2.0 y obtén tu Client ID, Client Secret y configura tu URI de redirección
-5. Guarda estas credenciales para usarlas en tu proyecto
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the Google Calendar API
+4. Create OAuth 2.0 credentials and obtain your Client ID, Client Secret, and configure your redirect URI
+5. Save these credentials to use in your project
 
-## Uso
+## Usage
 
-### Inicialización
+### Initialization
 
 ```php
 <?php
@@ -33,7 +33,7 @@ require_once 'vendor/autoload.php';
 
 use Jlbousing\GoogleCalendar\GoogleCalendar;
 
-// Configuración
+// Configuration
 $config = [
     'app_name' => 'Your Application Name',
     'client_id' => 'your-client-id-here',
@@ -41,64 +41,64 @@ $config = [
     'redirect_uri' => 'https://your-redirect-uri.com',
 ];
 
-// Inicializar
+// Initialize
 $googleCalendar = new GoogleCalendar($config);
 ```
 
-### Autenticación
+### Authentication
 
-El paquete utiliza OAuth 2.0 para la autenticación. Primero necesitas generar una URL de autenticación y luego obtener un token de acceso:
+The package uses OAuth 2.0 for authentication. First, you need to generate an authentication URL and then obtain an access token:
 
 ```php
-// Generar URL de autenticación
+// Generate authentication URL
 $authUrl = $googleCalendar->auth();
-echo "Abre esta URL en tu navegador: " . $authUrl;
+echo "Open this URL in your browser: " . $authUrl;
 
-// Después de autorizar, obtendrás un código que debes usar para obtener el token
-$code = 'código-de-autorización-recibido';
+// After authorizing, you'll receive a code that you must use to obtain the token
+$code = 'authorization-code-received';
 $token = $googleCalendar->getToken($code);
 
-// Guarda este token para futuras solicitudes
+// Save this token for future requests
 ```
 
-### Refrescar un token expirado
+### Refresh an expired token
 
 ```php
 $newToken = $googleCalendar->refreshToken($token);
 ```
 
-### Listar calendarios
+### List calendars
 
 ```php
 $calendars = $googleCalendar->listCalendars($token);
 foreach ($calendars as $calendar) {
-    echo "Calendario: " . $calendar->getSummary() . " - ID: " . $calendar->getId() . "\n";
+    echo "Calendar: " . $calendar->getSummary() . " - ID: " . $calendar->getId() . "\n";
 }
 ```
 
-### Crear un evento
+### Create an event
 
 ```php
 use Jlbousing\GoogleCalendar\DTOs\EventDTO;
 
-// Usando la clase EventDTO
+// Using the EventDTO class
 $eventDTO = new EventDTO();
 $eventDTO->setCalendarId('primary')
-    ->setTitle('Reunión importante')
-    ->setDescription('Discutir el nuevo proyecto')
+    ->setTitle('Important Meeting')
+    ->setDescription('Discuss the new project')
     ->setStart('2023-04-15T09:00:00-05:00')
     ->setEnd('2023-04-15T10:00:00-05:00')
     ->setTimezone('America/New_York')
-    ->setLocation('Sala de conferencias A')
-    ->addAttendee('colega@example.com')
-    ->addAttendee('gerente@example.com', true) // true = opcional
+    ->setLocation('Conference Room A')
+    ->addAttendee('colleague@example.com')
+    ->addAttendee('manager@example.com', true) // true = optional
     ->setSendNotifications(true);
 
 $event = $googleCalendar->createEvent($eventDTO, $token);
-echo "Evento creado con ID: " . $event->getId();
+echo "Event created with ID: " . $event->getId();
 ```
 
-### Obtener detalles de un evento
+### Get event details
 
 ```php
 use Jlbousing\GoogleCalendar\DTOs\EventDTO;
@@ -106,31 +106,31 @@ use Jlbousing\GoogleCalendar\DTOs\EventDTO;
 $eventDTO = new EventDTO();
 $eventDTO->setCalendarId('primary');
 
-$eventId = 'ID_DEL_EVENTO';
+$eventId = 'EVENT_ID';
 $event = $googleCalendar->getEvent($eventDTO, $eventId, $token);
-echo "Título del evento: " . $event->getSummary();
+echo "Event title: " . $event->getSummary();
 ```
 
-### Actualizar un evento
+### Update an event
 
 ```php
 use Jlbousing\GoogleCalendar\DTOs\EventDTO;
 
 $eventDTO = new EventDTO();
 $eventDTO->setCalendarId('primary')
-    ->setTitle('Reunión actualizada')
-    ->setDescription('Nueva descripción del evento')
+    ->setTitle('Updated Meeting')
+    ->setDescription('New event description')
     ->setStart('2023-04-15T10:00:00-05:00')
     ->setEnd('2023-04-15T11:00:00-05:00')
-    ->setLocation('Nueva ubicación')
+    ->setLocation('New Location')
     ->setSendNotifications(true);
 
-$eventId = 'ID_DEL_EVENTO';
+$eventId = 'EVENT_ID';
 $updatedEvent = $googleCalendar->updateEvent($eventDTO, $eventId, $token);
-echo "Evento actualizado: " . $updatedEvent->getSummary();
+echo "Event updated: " . $updatedEvent->getSummary();
 ```
 
-### Eliminar un evento
+### Delete an event
 
 ```php
 use Jlbousing\GoogleCalendar\DTOs\EventDTO;
@@ -138,14 +138,14 @@ use Jlbousing\GoogleCalendar\DTOs\EventDTO;
 $eventDTO = new EventDTO();
 $eventDTO->setCalendarId('primary');
 
-$eventId = 'ID_DEL_EVENTO';
+$eventId = 'EVENT_ID';
 $result = $googleCalendar->deleteEvent($eventDTO, $eventId, $token);
 if ($result) {
-    echo "Evento eliminado correctamente";
+    echo "Event successfully deleted";
 }
 ```
 
-### Listar eventos
+### List events
 
 ```php
 use Jlbousing\GoogleCalendar\DTOs\EventDTO;
@@ -157,11 +157,11 @@ $events = $googleCalendar->listEvents($eventDTO, $token);
 $items = $events->getItems();
 
 foreach ($items as $event) {
-    echo "Evento: " . $event->getSummary() . " - Fecha: " . $event->getStart()->getDateTime() . "\n";
+    echo "Event: " . $event->getSummary() . " - Date: " . $event->getStart()->getDateTime() . "\n";
 }
 ```
 
-### Listar eventos por fecha
+### List events by date
 
 ```php
 use Jlbousing\GoogleCalendar\DTOs\EventDTO;
@@ -173,72 +173,72 @@ $events = $googleCalendar->listEventsByDate($eventDTO, $token);
 $items = $events->getItems();
 
 foreach ($items as $event) {
-    echo "Evento: " . $event->getSummary() . " - Fecha: " . $event->getStart()->getDateTime() . "\n";
+    echo "Event: " . $event->getSummary() . " - Date: " . $event->getStart()->getDateTime() . "\n";
 }
 ```
 
 ## Data Transfer Objects (DTOs)
 
-Este paquete utiliza DTOs para manejar los datos de forma estructurada:
+This package uses DTOs to handle data in a structured way:
 
 ### ConfigDTO
 
-Maneja la configuración para el cliente de Google Calendar:
+Handles the configuration for the Google Calendar client:
 
 ```php
 use Jlbousing\GoogleCalendar\DTOs\ConfigDTO;
 
 $configDTO = new ConfigDTO([
-    'app_name' => 'Nombre de tu aplicación',
-    'client_id' => 'tu-client-id',
-    'client_secret' => 'tu-client-secret',
-    'redirect_uri' => 'https://tu-uri-de-redireccion.com',
+    'app_name' => 'Your Application Name',
+    'client_id' => 'your-client-id',
+    'client_secret' => 'your-client-secret',
+    'redirect_uri' => 'https://your-redirect-uri.com',
 ]);
 ```
 
 ### EventDTO
 
-Maneja los datos de eventos:
+Handles event data:
 
 ```php
 use Jlbousing\GoogleCalendar\DTOs\EventDTO;
 
-// Crear manualmente
+// Create manually
 $eventDTO = new EventDTO();
 $eventDTO->setCalendarId('primary')
-    ->setTitle('Reunión importante')
-    ->setDescription('Discutir el nuevo proyecto')
+    ->setTitle('Important Meeting')
+    ->setDescription('Discuss the new project')
     ->setStart('2023-04-15T09:00:00-05:00')
     ->setEnd('2023-04-15T10:00:00-05:00')
     ->setTimezone('America/New_York')
-    ->setLocation('Sala de conferencias A')
-    ->addAttendee('colega@example.com')
-    ->addAttendee('gerente@example.com', true)
+    ->setLocation('Conference Room A')
+    ->addAttendee('colleague@example.com')
+    ->addAttendee('manager@example.com', true)
     ->setSendNotifications(true);
 
-// O crear desde un array
+// Or create from an array
 $eventDTO = EventDTO::fromArray([
     'calendar_id' => 'primary',
-    'title' => 'Reunión importante',
-    'description' => 'Discutir el nuevo proyecto',
+    'title' => 'Important Meeting',
+    'description' => 'Discuss the new project',
     'start' => '2023-04-15T09:00:00-05:00',
     'end' => '2023-04-15T10:00:00-05:00',
     'timezone' => 'America/New_York',
-    'location' => 'Sala de conferencias A',
+    'location' => 'Conference Room A',
     'attendees' => [
-        ['email' => 'colega@example.com'],
-        ['email' => 'gerente@example.com', 'optional' => true]
+        ['email' => 'colleague@example.com'],
+        ['email' => 'manager@example.com', 'optional' => true]
     ],
     'send_notifications' => true
 ]);
 ```
 
-## Requisitos
+## Requirements
 
-- PHP 7.2 o superior
-- Extensión cURL de PHP habilitada
-- Cuenta de Google con la API de Calendar habilitada
+- PHP 7.2 or higher
+- PHP cURL extension enabled
+- Google account with Calendar API enabled
 
-## Licencia
+## License
 
 MIT
