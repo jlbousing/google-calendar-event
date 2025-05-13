@@ -92,11 +92,36 @@ $eventDTO->setCalendarId('primary')
     ->setLocation('Conference Room A')
     ->addAttendee('colleague@example.com')
     ->addAttendee('manager@example.com', true) // true = optional
-    ->setSendNotifications(true);
+    ->setSendNotifications(true)
+    ->setCreateMeet(true); // Create a Google Meet session
 
 $event = $googleCalendar->createEvent($eventDTO, $token);
 echo "Event created with ID: " . $event->getId();
+echo "Meet link: " . $event->getHangoutLink(); // Get the Google Meet link
 ```
+
+### Create an event with Google Meet
+
+To create an event with a Google Meet session, simply set the `createMeet` property to `true` in your EventDTO:
+
+```php
+$eventDTO = new EventDTO();
+$eventDTO->setCalendarId('primary')
+    ->setTitle('Virtual Meeting')
+    ->setDescription('Online team meeting')
+    ->setStart('2023-04-15T09:00:00-05:00')
+    ->setEnd('2023-04-15T10:00:00-05:00')
+    ->setTimezone('America/New_York')
+    ->setCreateMeet(true); // This will create a Google Meet session
+
+$event = $googleCalendar->createEvent($eventDTO, $token);
+
+// Get the Meet link
+$meetLink = $event->getHangoutLink();
+echo "Google Meet link: " . $meetLink;
+```
+
+The Google Meet link will be automatically included in the event details and sent to all attendees if notifications are enabled.
 
 ### Get event details
 

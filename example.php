@@ -91,6 +91,9 @@ function requestEventData()
     echo "¿Enviar notificaciones? (s/n): ";
     $sendNotifications = strtolower(trim(fgets(STDIN))) === 's';
 
+    echo "¿Crear sesión de Google Meet? (s/n): ";
+    $createMeet = strtolower(trim(fgets(STDIN))) === 's';
+
     // Format dates for Google Calendar
     $timezone = new DateTimeZone('America/New_York'); // Change this to your timezone
     $startDateTime = new DateTime($startDate . ' ' . $startTime, $timezone);
@@ -106,6 +109,7 @@ function requestEventData()
     $eventDTO->setEnd($endDateTime->format('c'));
     $eventDTO->setTimezone($timezone->getName());
     $eventDTO->setSendNotifications($sendNotifications);
+    $eventDTO->setCreateMeet($createMeet);
 
     if (!empty($location)) {
         $eventDTO->setLocation($location);
@@ -189,7 +193,28 @@ while (true) {
                 echo "ID: " . $lastEventId . "\n";
                 echo "Título: " . $event->getSummary() . "\n";
                 echo "Inicio: " . $event->getStart()->getDateTime() . "\n";
-                echo "Fin: " . $event->getEnd()->getDateTime() . "\n\n";
+                echo "Fin: " . $event->getEnd()->getDateTime() . "\n";
+
+                // Mostrar información de Google Meet si está disponible
+                if ($eventDTO->getCreateMeet() && $event->getHangoutLink()) {
+                    echo "\n🔗 Enlace de Google Meet:\n";
+                    echo $event->getHangoutLink() . "\n";
+                }
+
+                // Mostrar información de los asistentes
+                $attendees = $event->getAttendees();
+                if (!empty($attendees)) {
+                    echo "\n👥 Asistentes:\n";
+                    foreach ($attendees as $attendee) {
+                        echo "  - " . $attendee->getEmail();
+                        if ($attendee->getOptional()) {
+                            echo " (opcional)";
+                        }
+                        echo "\n";
+                    }
+                }
+
+                echo "\n";
             } catch (Exception $e) {
                 echo "\n❌ Error al crear evento: " . $e->getMessage() . "\n\n";
             }
@@ -229,13 +254,20 @@ while (true) {
                 echo "Descripción: " . $event->getDescription() . "\n";
                 echo "Inicio: " . $event->getStart()->getDateTime() . "\n";
                 echo "Fin: " . $event->getEnd()->getDateTime() . "\n";
+
+                // Mostrar información de Google Meet si está disponible
+                if ($event->getHangoutLink()) {
+                    echo "\n🔗 Enlace de Google Meet:\n";
+                    echo $event->getHangoutLink() . "\n";
+                }
+
                 if ($event->getLocation()) {
-                    echo "Ubicación: " . $event->getLocation() . "\n";
+                    echo "📍 Ubicación: " . $event->getLocation() . "\n";
                 }
 
                 $attendees = $event->getAttendees();
                 if (!empty($attendees)) {
-                    echo "Asistentes:\n";
+                    echo "\n👥 Asistentes:\n";
                     foreach ($attendees as $attendee) {
                         echo "  - " . $attendee->getEmail();
                         if ($attendee->getOptional()) {

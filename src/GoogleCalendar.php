@@ -94,8 +94,20 @@ class GoogleCalendar
             $this->client->setAccessToken($token);
             $calendarService = new Calendar($this->client);
             $event = new Event($eventDTO->toArray());
-            $calendarService->events->insert($eventDTO->getCalendarId(), $event);
-            return $event;
+
+            // Configurar parámetros adicionales para la creación del evento
+            $params = [];
+            if ($eventDTO->getSendNotifications()) {
+                $params['sendUpdates'] = 'all';
+            }
+
+            // Si se solicita crear una sesión de Meet, agregar el parámetro conferenceDataVersion
+            if ($eventDTO->getCreateMeet()) {
+                $params['conferenceDataVersion'] = 1;
+            }
+
+            $createdEvent = $calendarService->events->insert($eventDTO->getCalendarId(), $event, $params);
+            return $createdEvent;
         } catch (\Exception $e) {
             throw new \Exception('Error creating event: ' . $e->getMessage());
         }

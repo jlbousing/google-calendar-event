@@ -50,6 +50,11 @@ class EventDTO
     private $sendNotifications = false;
 
     /**
+     * @var bool
+     */
+    private $createMeet = false;
+
+    /**
      * @param array $data
      * @return self
      */
@@ -79,6 +84,10 @@ class EventDTO
             $dto->setCalendarId($data['calendar_id']);
         }
 
+        if (isset($data['create_meet'])) {
+            $dto->setCreateMeet($data['create_meet']);
+        }
+
         return $dto;
     }
 
@@ -106,6 +115,17 @@ class EventDTO
 
         if (!empty($this->attendees)) {
             $data['attendees'] = $this->attendees;
+        }
+
+        if ($this->createMeet) {
+            $data['conferenceData'] = [
+                'createRequest' => [
+                    'requestId' => uniqid(),
+                    'conferenceSolutionKey' => [
+                        'type' => 'hangoutsMeet'
+                    ]
+                ]
+            ];
         }
 
         return $data;
@@ -284,6 +304,24 @@ class EventDTO
     public function setSendNotifications(bool $sendNotifications): self
     {
         $this->sendNotifications = $sendNotifications;
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function getCreateMeet(): bool
+    {
+        return $this->createMeet;
+    }
+
+    /**
+     * @param bool $createMeet
+     * @return self
+     */
+    public function setCreateMeet(bool $createMeet): self
+    {
+        $this->createMeet = $createMeet;
         return $this;
     }
 }
