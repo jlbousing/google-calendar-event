@@ -30,7 +30,7 @@ class GoogleCalendar
     {
         $this->configDTO = new ConfigDTO($config);
         $this->client = new Client();
-        $this->client->setApplicationName($this->configDTO->getAppName());
+        $this->client->setApplicationName($this->configDTO->getAppName() ?? 'app');
         $this->client->setClientId($this->configDTO->getClientId());
         $this->client->setClientSecret($this->configDTO->getClientSecret());
         $this->client->setRedirectUri($this->configDTO->getRedirectUri());
