@@ -7,7 +7,7 @@ class ConfigDTO
     /**
      * @var string
      */
-    private $appName;
+    private $appName = 'Google Calendar App';
 
     /**
      * @var string
@@ -77,7 +77,7 @@ class ConfigDTO
      */
     public function getAppName(): string
     {
-        return $this->appName;
+        return $this->appName ?? 'Google Calendar App';
     }
 
     /**
