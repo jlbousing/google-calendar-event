@@ -35,6 +35,7 @@ function showMenu()
     echo "6. Actualizar un evento\n";
     echo "7. Eliminar un evento\n";
     echo "8. Listar eventos\n";
+    echo "9. Obtener grabaciones de Google Meet\n";
     echo "0. Salir\n";
     echo "Select an option: ";
     return trim(fgets(STDIN));
@@ -94,6 +95,18 @@ function requestEventData()
     echo "¿Crear sesión de Google Meet? (s/n): ";
     $createMeet = strtolower(trim(fgets(STDIN))) === 's';
 
+    $recordMeet = false;
+    $saveToDrive = false;
+    if ($createMeet) {
+        echo "¿Grabar la reunión de Meet? (s/n): ";
+        $recordMeet = strtolower(trim(fgets(STDIN))) === 's';
+
+        if ($recordMeet) {
+            echo "¿Guardar grabación en Google Drive? (s/n): ";
+            $saveToDrive = strtolower(trim(fgets(STDIN))) === 's';
+        }
+    }
+
     // Format dates for Google Calendar
     $timezone = new DateTimeZone('America/New_York'); // Change this to your timezone
     $startDateTime = new DateTime($startDate . ' ' . $startTime, $timezone);
@@ -110,6 +123,12 @@ function requestEventData()
     $eventDTO->setTimezone($timezone->getName());
     $eventDTO->setSendNotifications($sendNotifications);
     $eventDTO->setCreateMeet($createMeet);
+    if ($recordMeet) {
+        $eventDTO->setRecordMeet($recordMeet);
+    }
+    if ($saveToDrive) {
+        $eventDTO->setSaveToDrive($saveToDrive);
+    }
 
     if (!empty($location)) {
         $eventDTO->setLocation($location);
@@ -402,6 +421,84 @@ while (true) {
                 }
             } catch (Exception $e) {
                 echo "\n❌ Error al listar eventos: " . $e->getMessage() . "\n\n";
+            }
+            break;
+
+        case '9': // Obtener grabaciones de Meet
+            echo "\n=== Obtener Grabaciones de Meet ===\n";
+            if (!$token) {
+                echo "❌ Debes obtener un token primero (opción 2)\n\n";
+                break;
+            }
+
+            echo "1. Listar todas las grabaciones\n";
+            echo "2. Obtener grabaciones de un evento específico\n";
+            echo "Selecciona una opción: ";
+            $subOption = trim(fgets(STDIN));
+
+            try {
+                if ($subOption === '1') {
+                    echo "Nombre de la carpeta (por defecto 'Meet Recordings'): ";
+                    $folderName = trim(fgets(STDIN));
+                    $folderName = $folderName ?: 'Meet Recordings';
+
+                    echo "Número máximo de resultados (por defecto 50): ";
+                    $maxResults = trim(fgets(STDIN));
+                    $maxResults = empty($maxResults) ? 50 : (int)$maxResults;
+
+                    $recordings = $googleCalendar->getMeetRecordings($token, $folderName, $maxResults);
+
+                    if (empty($recordings)) {
+                        echo "\nNo se encontraron grabaciones.\n\n";
+                    } else {
+                        echo "\n✅ Se encontraron " . count($recordings) . " grabaciones:\n\n";
+                        foreach ($recordings as $index => $recording) {
+                            echo ($index + 1) . ". " . $recording['name'] . "\n";
+                            echo "   ID: " . $recording['id'] . "\n";
+                            echo "   Fecha: " . $recording['createdTime'] . "\n";
+                            echo "   Tamaño: " . ($recording['size'] ? number_format($recording['size'] / 1024 / 1024, 2) . " MB" : "N/A") . "\n";
+                            echo "   Enlace: " . $recording['webViewLink'] . "\n\n";
+                        }
+                    }
+                } elseif ($subOption === '2') {
+                    echo "ID del calendario (por defecto 'primary'): ";
+                    $calendarId = trim(fgets(STDIN));
+                    $calendarId = $calendarId ?: 'primary';
+
+                    echo "ID del evento" . ($lastEventId ? " (Presiona Enter para usar $lastEventId)" : "") . ": ";
+                    $eventId = trim(fgets(STDIN));
+
+                    if (empty($eventId) && !empty($lastEventId)) {
+                        $eventId = $lastEventId;
+                    }
+
+                    if (empty($eventId)) {
+                        echo "\n❌ ID de evento inválido\n\n";
+                        break;
+                    }
+
+                    $eventDTO = new EventDTO();
+                    $eventDTO->setCalendarId($calendarId);
+
+                    $recordings = $googleCalendar->getEventRecordings($eventDTO, $eventId, $token);
+
+                    if (empty($recordings)) {
+                        echo "\nNo se encontraron grabaciones para este evento.\n\n";
+                    } else {
+                        echo "\n✅ Se encontraron " . count($recordings) . " grabaciones para este evento:\n\n";
+                        foreach ($recordings as $index => $recording) {
+                            echo ($index + 1) . ". " . $recording['name'] . "\n";
+                            echo "   ID: " . $recording['id'] . "\n";
+                            echo "   Fecha: " . $recording['createdTime'] . "\n";
+                            echo "   Tamaño: " . ($recording['size'] ? number_format($recording['size'] / 1024 / 1024, 2) . " MB" : "N/A") . "\n";
+                            echo "   Enlace: " . $recording['webViewLink'] . "\n\n";
+                        }
+                    }
+                } else {
+                    echo "\n❌ Opción inválida\n\n";
+                }
+            } catch (Exception $e) {
+                echo "\n❌ Error al obtener grabaciones: " . $e->getMessage() . "\n\n";
             }
             break;
 

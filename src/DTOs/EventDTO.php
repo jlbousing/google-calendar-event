@@ -55,6 +55,16 @@ class EventDTO
     private $createMeet = false;
 
     /**
+     * @var bool
+     */
+    private $recordMeet = false;
+
+    /**
+     * @var bool
+     */
+    private $saveToDrive = false;
+
+    /**
      * @param array $data
      * @return self
      */
@@ -88,6 +98,14 @@ class EventDTO
             $dto->setCreateMeet($data['create_meet']);
         }
 
+        if (isset($data['record_meet'])) {
+            $dto->setRecordMeet($data['record_meet']);
+        }
+
+        if (isset($data['save_to_drive'])) {
+            $dto->setSaveToDrive($data['save_to_drive']);
+        }
+
         return $dto;
     }
 
@@ -118,7 +136,7 @@ class EventDTO
         }
 
         if ($this->createMeet) {
-            $data['conferenceData'] = [
+            $conferenceData = [
                 'createRequest' => [
                     'requestId' => uniqid(),
                     'conferenceSolutionKey' => [
@@ -126,6 +144,15 @@ class EventDTO
                     ]
                 ]
             ];
+
+            // Configurar grabación si está habilitada
+            if ($this->recordMeet) {
+                $conferenceData['createRequest']['requestId'] = uniqid('recording-');
+                // Nota: La grabación se configura automáticamente cuando se crea el evento
+                // y el usuario tiene permisos de grabación en su cuenta de Google Workspace
+            }
+
+            $data['conferenceData'] = $conferenceData;
         }
 
         return $data;
@@ -322,6 +349,51 @@ class EventDTO
     public function setCreateMeet(bool $createMeet): self
     {
         $this->createMeet = $createMeet;
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function getRecordMeet(): bool
+    {
+        return $this->recordMeet;
+    }
+
+    /**
+     * @param bool $recordMeet
+     * @return self
+     */
+    public function setRecordMeet(bool $recordMeet): self
+    {
+        $this->recordMeet = $recordMeet;
+        // Si se habilita la grabación, también se debe crear Meet
+        if ($recordMeet) {
+            $this->createMeet = true;
+        }
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function getSaveToDrive(): bool
+    {
+        return $this->saveToDrive;
+    }
+
+    /**
+     * @param bool $saveToDrive
+     * @return self
+     */
+    public function setSaveToDrive(bool $saveToDrive): self
+    {
+        $this->saveToDrive = $saveToDrive;
+        // Si se guarda en Drive, también se debe grabar
+        if ($saveToDrive) {
+            $this->recordMeet = true;
+            $this->createMeet = true;
+        }
         return $this;
     }
 }

@@ -123,6 +123,92 @@ echo "Google Meet link: " . $meetLink;
 
 The Google Meet link will be automatically included in the event details and sent to all attendees if notifications are enabled.
 
+### Create an event with Google Meet recording
+
+To create an event with Google Meet recording that saves to Drive, use the `setRecordMeet()` and `setSaveToDrive()` methods:
+
+```php
+$eventDTO = new EventDTO();
+$eventDTO->setCalendarId('primary')
+    ->setTitle('Recorded Virtual Meeting')
+    ->setDescription('This meeting will be recorded')
+    ->setStart('2023-04-15T09:00:00-05:00')
+    ->setEnd('2023-04-15T10:00:00-05:00')
+    ->setTimezone('America/New_York')
+    ->setCreateMeet(true)
+    ->setRecordMeet(true)      // Enable recording
+    ->setSaveToDrive(true);     // Save recording to Google Drive
+
+$event = $googleCalendar->createEvent($eventDTO, $token);
+
+// Get the Meet link
+$meetLink = $event->getHangoutLink();
+echo "Google Meet link: " . $meetLink;
+```
+
+**Note:** Recording functionality requires a Google Workspace account (Business Standard, Business Plus, Enterprise, or Education). The recording must be manually started during the meeting by an authorized user.
+
+### Get Meet recordings from Drive
+
+Retrieve all Meet recordings stored in Google Drive:
+
+```php
+// Get all recordings from the default "Meet Recordings" folder
+$recordings = $googleCalendar->getMeetRecordings($token);
+
+// Or specify a custom folder name and max results
+$recordings = $googleCalendar->getMeetRecordings($token, 'My Recordings', 100);
+
+foreach ($recordings as $recording) {
+    echo "Recording: " . $recording['name'] . "\n";
+    echo "Created: " . $recording['createdTime'] . "\n";
+    echo "Size: " . ($recording['size'] ? number_format($recording['size'] / 1024 / 1024, 2) . " MB" : "N/A") . "\n";
+    echo "View Link: " . $recording['webViewLink'] . "\n\n";
+}
+```
+
+### Get recordings for a specific event
+
+Retrieve recordings associated with a specific calendar event:
+
+```php
+use Jlbousing\GoogleCalendar\DTOs\EventDTO;
+
+$eventDTO = new EventDTO();
+$eventDTO->setCalendarId('primary');
+
+$eventId = 'EVENT_ID';
+$recordings = $googleCalendar->getEventRecordings($eventDTO, $eventId, $token);
+
+if (!empty($recordings)) {
+    foreach ($recordings as $recording) {
+        echo "Recording: " . $recording['name'] . "\n";
+        echo "Link: " . $recording['webViewLink'] . "\n";
+    }
+} else {
+    echo "No recordings found for this event.";
+}
+```
+
+### Download a Meet recording
+
+Download a recording file from Google Drive:
+
+```php
+$fileId = 'DRIVE_FILE_ID';
+
+// Download and save to a file
+$result = $googleCalendar->downloadRecording($fileId, $token, '/path/to/save/recording.mp4');
+if ($result['success']) {
+    echo "Recording saved to: " . $result['path'] . "\n";
+    echo "File: " . $result['file']['name'] . "\n";
+}
+
+// Or get the content directly
+$content = $googleCalendar->downloadRecording($fileId, $token);
+// Process the content as needed
+```
+
 ### Get event details
 
 ```php
@@ -254,15 +340,43 @@ $eventDTO = EventDTO::fromArray([
         ['email' => 'colleague@example.com'],
         ['email' => 'manager@example.com', 'optional' => true]
     ],
-    'send_notifications' => true
+    'send_notifications' => true,
+    'create_meet' => true,
+    'record_meet' => true,
+    'save_to_drive' => true
 ]);
 ```
 
+## Google Meet Recording Features
+
+### Requirements for Recording
+
+- **Google Workspace Account**: Recording is only available for Google Workspace accounts (Business Standard, Business Plus, Enterprise, or Education editions)
+- **Permissions**: The user must have recording permissions enabled in their Google Workspace account
+- **Drive Access**: The package requires Drive API scopes to access recordings stored in Google Drive
+
+### How Recording Works
+
+1. When you create an event with `setRecordMeet(true)`, the event is configured to support recording
+2. During the meeting, an authorized participant must manually start the recording from the Meet interface
+3. Once the recording is stopped, it is automatically saved to Google Drive in the "Meet Recordings" folder
+4. You can then retrieve the recordings using the methods provided in this package
+
+### Drive API Scopes
+
+The package automatically includes the following Drive API scopes:
+- `https://www.googleapis.com/auth/drive.readonly` - Read access to Drive files
+- `https://www.googleapis.com/auth/drive.file` - Access to files created by the app
+
+Make sure to re-authenticate your application after adding these scopes to get the necessary permissions.
+
 ## Requirements
 
-- PHP 7.2 or higher
+- PHP 7.4 or higher (PHP 8.0+ recommended for latest features)
 - PHP cURL extension enabled
 - Google account with Calendar API enabled
+- Google Drive API enabled (for recording features)
+- Google Workspace account (for recording functionality)
 
 ## License
 

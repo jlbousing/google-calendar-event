@@ -5,6 +5,8 @@ namespace Jlbousing\GoogleCalendar;
 use Google\Client;
 use Google\Service\Calendar;
 use Google\Service\Calendar\Event;
+use Google\Service\Drive;
+use Google\Service\Drive\DriveFile;
 use Exception;
 use Jlbousing\GoogleCalendar\DTOs\ConfigDTO;
 use Jlbousing\GoogleCalendar\DTOs\EventDTO;
@@ -40,7 +42,9 @@ class GoogleCalendar
             Calendar::CALENDAR,
             Calendar::CALENDAR_READONLY,
             'https://www.googleapis.com/auth/calendar.events',
-            'https://www.googleapis.com/auth/calendar.events.readonly'
+            'https://www.googleapis.com/auth/calendar.events.readonly',
+            'https://www.googleapis.com/auth/drive.readonly',
+            'https://www.googleapis.com/auth/drive.file'
         ]);
     }
 
@@ -175,6 +179,170 @@ class GoogleCalendar
             return $events;
         } catch (\Exception $e) {
             throw new \Exception('Error listing events by date: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtener grabaciones de Google Meet desde Drive
+     * 
+     * @param string|null $folderName Nombre de la carpeta donde buscar (por defecto "Meet Recordings")
+     * @param int $maxResults Número máximo de resultados
+     * @param string $token Token de acceso
+     * @return array Lista de archivos de grabación
+     * @throws Exception
+     */
+    public function getMeetRecordings($token, $folderName = 'Meet Recordings', $maxResults = 50)
+    {
+        $token = $this->refreshToken($token);
+        try {
+            $this->client->setAccessToken($token);
+            $driveService = new Drive($this->client);
+
+            // Buscar la carpeta "Meet Recordings"
+            $query = "mimeType='application/vnd.google-apps.folder' and name='{$folderName}' and trashed=false";
+            $folders = $driveService->files->listFiles([
+                'q' => $query,
+                'pageSize' => 1
+            ]);
+
+            $recordings = [];
+
+            if (count($folders->getFiles()) > 0) {
+                $folder = $folders->getFiles()[0];
+                $folderId = $folder->getId();
+
+                // Buscar archivos de video en la carpeta
+                $videoQuery = "'{$folderId}' in parents and (mimeType='video/mp4' or mimeType='video/webm' or mimeType='video/x-msvideo') and trashed=false";
+                $files = $driveService->files->listFiles([
+                    'q' => $videoQuery,
+                    'pageSize' => $maxResults,
+                    'orderBy' => 'createdTime desc',
+                    'fields' => 'files(id, name, createdTime, modifiedTime, size, webViewLink, webContentLink, mimeType)'
+                ]);
+
+                foreach ($files->getFiles() as $file) {
+                    $recordings[] = [
+                        'id' => $file->getId(),
+                        'name' => $file->getName(),
+                        'createdTime' => $file->getCreatedTime(),
+                        'modifiedTime' => $file->getModifiedTime(),
+                        'size' => $file->getSize(),
+                        'webViewLink' => $file->getWebViewLink(),
+                        'webContentLink' => $file->getWebContentLink(),
+                        'mimeType' => $file->getMimeType()
+                    ];
+                }
+            }
+
+            return $recordings;
+        } catch (\Exception $e) {
+            throw new \Exception('Error getting Meet recordings: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtener grabaciones de Meet asociadas a un evento específico
+     * 
+     * @param EventDTO $eventDTO
+     * @param string $eventId ID del evento
+     * @param string $token Token de acceso
+     * @return array Lista de grabaciones asociadas al evento
+     * @throws Exception
+     */
+    public function getEventRecordings(EventDTO $eventDTO, $eventId, $token)
+    {
+        $token = $this->refreshToken($token);
+        try {
+            $this->client->setAccessToken($token);
+            $calendarService = new Calendar($this->client);
+            $event = $calendarService->events->get($eventDTO->getCalendarId(), $eventId);
+
+            // Obtener el título del evento para buscar grabaciones relacionadas
+            $eventTitle = $event->getSummary();
+            $eventStart = $event->getStart()->getDateTime();
+
+            // Buscar grabaciones en Drive que coincidan con el título y fecha del evento
+            $driveService = new Drive($this->client);
+
+            // Formatear la fecha para la búsqueda
+            $searchDate = date('Y-m-d', strtotime($eventStart));
+
+            $query = "name contains '{$eventTitle}' and (mimeType='video/mp4' or mimeType='video/webm' or mimeType='video/x-msvideo') and trashed=false";
+            $files = $driveService->files->listFiles([
+                'q' => $query,
+                'pageSize' => 10,
+                'orderBy' => 'createdTime desc',
+                'fields' => 'files(id, name, createdTime, modifiedTime, size, webViewLink, webContentLink, mimeType)'
+            ]);
+
+            $recordings = [];
+            foreach ($files->getFiles() as $file) {
+                $fileDate = date('Y-m-d', strtotime($file->getCreatedTime()));
+                // Filtrar por fecha aproximada (mismo día)
+                if ($fileDate === $searchDate) {
+                    $recordings[] = [
+                        'id' => $file->getId(),
+                        'name' => $file->getName(),
+                        'createdTime' => $file->getCreatedTime(),
+                        'modifiedTime' => $file->getModifiedTime(),
+                        'size' => $file->getSize(),
+                        'webViewLink' => $file->getWebViewLink(),
+                        'webContentLink' => $file->getWebContentLink(),
+                        'mimeType' => $file->getMimeType()
+                    ];
+                }
+            }
+
+            return $recordings;
+        } catch (\Exception $e) {
+            throw new \Exception('Error getting event recordings: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Descargar una grabación de Meet desde Drive
+     * 
+     * @param string $fileId ID del archivo en Drive
+     * @param string $token Token de acceso
+     * @param string|null $savePath Ruta donde guardar el archivo (opcional)
+     * @return string|array Contenido del archivo o información del archivo
+     * @throws Exception
+     */
+    public function downloadRecording($fileId, $token, $savePath = null)
+    {
+        $token = $this->refreshToken($token);
+        try {
+            $this->client->setAccessToken($token);
+            $driveService = new Drive($this->client);
+
+            // Obtener información del archivo
+            $file = $driveService->files->get($fileId, ['fields' => 'id, name, mimeType, size']);
+
+            // Descargar el contenido del archivo usando el método correcto
+            $http = $this->client->authorize();
+            $request = $driveService->files->get($fileId, ['alt' => 'media']);
+            $response = $http->request('GET', (string)$request);
+            $content = (string)$response->getBody();
+
+            if ($savePath) {
+                // Guardar en el sistema de archivos
+                file_put_contents($savePath, $content);
+                return [
+                    'success' => true,
+                    'path' => $savePath,
+                    'file' => [
+                        'id' => $file->getId(),
+                        'name' => $file->getName(),
+                        'size' => $file->getSize(),
+                        'mimeType' => $file->getMimeType()
+                    ]
+                ];
+            }
+
+            // Devolver el contenido
+            return $content;
+        } catch (\Exception $e) {
+            throw new \Exception('Error downloading recording: ' . $e->getMessage());
         }
     }
 }
