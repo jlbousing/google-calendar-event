@@ -1,5 +1,6 @@
 {
     "name": "jlbousing/google-calendar-event",
+    "version": "1.1.0",
     "description": "Package to make a google calendar event by any PHP project",
     "type": "library",
     "license": "MIT",
