@@ -365,6 +365,7 @@ $eventDTO = EventDTO::fromArray([
 ### Drive API Scopes
 
 The package automatically includes the following Drive API scopes:
+
 - `https://www.googleapis.com/auth/drive.readonly` - Read access to Drive files
 - `https://www.googleapis.com/auth/drive.file` - Access to files created by the app
 
